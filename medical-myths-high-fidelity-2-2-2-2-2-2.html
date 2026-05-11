@@ -1,0 +1,569 @@
+
+<!doctype html>
+<html lang="ru">
+<head><script data-od-sandbox-shim>(function(){
+  function makeStore(){
+    var data = {};
+    var api = {
+      getItem: function(k){ return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },
+      setItem: function(k, v){ data[k] = String(v); },
+      removeItem: function(k){ delete data[k]; },
+      clear: function(){ data = {}; },
+      key: function(i){ return Object.keys(data)[i] || null; }
+    };
+    Object.defineProperty(api, 'length', { get: function(){ return Object.keys(data).length; } });
+    return api;
+  }
+  function tryShim(name){
+    var works = false;
+    try { works = !!window[name] && typeof window[name].getItem === 'function'; void window[name].length; }
+    catch (_) { works = false; }
+    if (works) return;
+    try { Object.defineProperty(window, name, { configurable: true, value: makeStore() }); }
+    catch (_) { try { window[name] = makeStore(); } catch (__) {} }
+  }
+  tryShim('localStorage');
+  tryShim('sessionStorage');
+})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Медицинские мифы — Bento Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,800;1,6..72,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: oklch(98% 0.005 240);
+      --fg: oklch(12% 0.02 250);
+      --muted: oklch(45% 0.015 250);
+      --accent: oklch(60% 0.16 230);
+      --danger: oklch(60% 0.2 25);
+      --glass: rgba(255, 255, 255, 0.4);
+      --glass-border: rgba(255, 255, 255, 0.6);
+      
+      --font-display: 'Newsreader', serif;
+      --font-body: 'Inter', sans-serif;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      overflow: hidden;
+      cursor: none !important;
+      perspective: 1200px;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Ambient Background */
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    .background-blobs {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      filter: blur(80px);
+      opacity: 0.3;
+    }
+
+    .blob {
+      position: absolute;
+      width: 40vw;
+      height: 40vw;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: drift 25s infinite alternate ease-in-out;
+    }
+
+    @keyframes drift {
+      0% { transform: translate(-10%, -10%) scale(1); }
+      100% { transform: translate(30%, 20%) scale(1.3); }
+    }
+
+    /* Deck Layout */
+    #deck {
+      height: 100%;
+      width: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem;
+      transition: opacity 1.2s var(--ease), transform 1.2s var(--ease), visibility 1.2s;
+      transform: translateZ(-200px) rotateX(10deg);
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateZ(0) rotateX(0);
+    }
+
+    /* Bento Grid System */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 1400px;
+      height: 85vh;
+      max-height: 900px;
+    }
+
+    .bento-item {
+      background: var(--glass);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      border-radius: 2.5rem;
+      padding: 2.5rem;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+      transition: transform 0.8s var(--ease), opacity 0.8s var(--ease);
+      opacity: 0;
+      transform: translateY(30px) translateZ(0);
+    }
+
+    .slide.active .bento-item {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Staggered Item Animations */
+    .bento-item:nth-child(1) { transition-delay: 0.1s; }
+    .bento-item:nth-child(2) { transition-delay: 0.2s; }
+    .bento-item:nth-child(3) { transition-delay: 0.3s; }
+    .bento-item:nth-child(4) { transition-delay: 0.4s; }
+    .bento-item:nth-child(5) { transition-delay: 0.5s; }
+
+    /* Bento Item Variants */
+    .item-hero { grid-column: span 3; grid-row: span 2; }
+    .item-tall { grid-column: span 1; grid-row: span 3; }
+    .item-wide { grid-column: span 2; grid-row: span 2; }
+    .item-square { grid-column: span 1; grid-row: span 1; }
+    .item-main { grid-column: span 2; grid-row: span 3; }
+    .item-side { grid-column: span 2; grid-row: span 1; }
+    .item-full { grid-column: span 4; grid-row: span 4; }
+
+    /* Typography */
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(4rem, 8vw, 7.5rem);
+      font-weight: 800;
+      line-height: 0.85;
+      letter-spacing: -0.06em;
+      font-style: italic;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 1rem;
+    }
+
+    .eyebrow {
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      display: block;
+    }
+
+    .lead {
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: var(--muted);
+      line-height: 1.3;
+      max-width: 35ch;
+    }
+
+    ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    li {
+      font-size: 1.15rem;
+      font-weight: 600;
+      line-height: 1.4;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+
+    li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.6em;
+      width: 0.8rem;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    /* Media Styling */
+    .bento-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 12s linear;
+    }
+
+    .slide.active .bento-image {
+      transform: scale(1.1);
+    }
+
+    /* Myth Stamp */
+    .myth-stamp {
+      position: absolute;
+      bottom: 2rem;
+      right: 2rem;
+      border: 6px solid var(--danger);
+      color: var(--danger);
+      font-weight: 900;
+      font-size: 3rem;
+      padding: 0.4rem 1.2rem;
+      text-transform: uppercase;
+      transform: rotate(-10deg) scale(1.5);
+      opacity: 0;
+      transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 1s;
+      pointer-events: none;
+      font-family: var(--font-body);
+    }
+
+    .slide.active .myth-stamp {
+      opacity: 0.7;
+      transform: rotate(-10deg) scale(1);
+    }
+
+    /* UI Indicators */
+    .progress-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      height: 6px;
+      background: var(--accent);
+      width: 0%;
+      z-index: 2000;
+      transition: width 0.8s var(--ease);
+    }
+
+    .slide-index {
+      position: fixed;
+      bottom: 2rem;
+      right: 3rem;
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--muted);
+      z-index: 2000;
+      opacity: 0.4;
+    }
+
+    /* Custom 3D Tilt Effect */
+    .bento-grid {
+      transform: rotateX(5deg) rotateY(-2deg);
+      transition: transform 1s var(--ease);
+    }
+
+    /* Section Overrides */
+    #slide-1 { --accent: oklch(60% 0.15 210); }
+    #slide-2 { --accent: oklch(55% 0.18 250); }
+    #slide-3 { --accent: oklch(65% 0.1 230); }
+    #slide-4 { --accent: oklch(70% 0.16 80); }
+    #slide-5 { --accent: oklch(55% 0.22 30); }
+    #slide-7 { --accent: oklch(50% 0.15 190); }
+
+    /* Keyframe Animations */
+    @keyframes float {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-10px); }
+    }
+
+    /* Cinematic reveal overlay */
+    .cinematic-reveal {
+      position: fixed;
+      inset: 0;
+      background: black;
+      z-index: 9999;
+      pointer-events: none;
+      animation: revealDone 1.5s var(--ease) forwards;
+    }
+
+    @keyframes revealDone {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    @media (max-width: 1100px) {
+      .bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto;
+        height: auto;
+        max-height: none;
+      }
+      .bento-item { grid-column: span 2 !important; grid-row: auto !important; height: 300px; }
+      .slide { overflow-y: auto; padding: 2rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cinematic-reveal"></div>
+  <div class="noise"></div>
+  <div class="background-blobs">
+    <div class="blob"></div>
+  </div>
+
+  <div class="progress-bar" id="progress"></div>
+  <div class="slide-index"><span id="curr-num">1</span> / 6</div>
+
+  <div id="deck">
+    <!-- Slide 1: Intro -->
+    <section class="slide active" id="slide-1">
+      <div class="bento-grid">
+        <div class="bento-item item-hero">
+          <span class="eyebrow">Medical Science</span>
+          <h1>Почему мы болеем <br> не от холода</h1>
+        </div>
+        <div class="bento-item item-tall" style="padding:0">
+          <img src="mp1cxfih-image.png" class="bento-image" alt="Lab">
+        </div>
+        <div class="bento-item item-main">
+          <p class="lead">Разбираем детские страхи и взрослые мифы через призму доказательной медицины.</p>
+        </div>
+        <div class="bento-item item-square" style="background: var(--accent); color: white; justify-content: center; align-items: center; text-align: center;">
+          <span style="font-weight:800; font-size: 2rem;">100%</span>
+          <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;">Факты</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2: Cold/Meningitis -->
+    <section class="slide" id="slide-2">
+      <div class="bento-grid">
+        <div class="bento-item item-tall" style="padding:0">
+          <img src="mp1d0yxb-image.png" class="bento-image" alt="Cold">
+          <div class="myth-stamp">Миф</div>
+        </div>
+        <div class="bento-item item-hero">
+          <span class="eyebrow">Зимние страшилки</span>
+          <h2>Холод, шапка <br> и менингит</h2>
+        </div>
+        <div class="bento-item item-main">
+          <ul>
+            <li>Менингит и отит вызываются вирусами и бактериями, а не отсутствием шапки.</li>
+            <li>Зимой люди чаще сидят в одном помещении и заражают друг друга.</li>
+            <li>Уши болят от спазма сосудов и нервов на морозе, а не от инфекции.</li>
+          </ul>
+        </div>
+        <div class="bento-item item-square" style="border: 2px solid var(--accent);">
+           <span style="font-size: 0.8rem; font-weight: 800; color: var(--accent);">INFO</span>
+           <p style="font-size: 0.7rem; margin-top: 0.5rem;">Инфекция не берется из ниоткуда.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 3: Climate Control -->
+    <section class="slide" id="slide-3">
+      <div class="bento-grid">
+        <div class="bento-item item-main">
+          <span class="eyebrow">Технологическая паника</span>
+          <h2>Кондиционер <br> и вентилятор</h2>
+          <p class="lead" style="margin-top: 1.5rem; font-size: 1.1rem;">Опасность не в «холодном ветре», а в том, что он разносит.</p>
+        </div>
+        <div class="bento-item item-wide" style="padding:0">
+          <img src="mp1efvef-mp1d2660-image.png" class="bento-image" alt="Honey/Remedies" style="object-fit: contain;">
+          <div class="myth-stamp" style="bottom: 1rem; right: 1rem;">Миф</div>
+        </div>
+        <div class="bento-item item-main">
+          <ul>
+            <li>Миф о «смерти от вентилятора» не подтвержден наукой.</li>
+            <li>Кондиционер сушит воздух, провоцируя дискомфорт, но не вызывает болезнь сам по себе.</li>
+            <li>Реальная угроза — бактерии легионеллы в грязных фильтрах.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 4: Remedies -->
+    <section class="slide" id="slide-4">
+      <div class="bento-grid">
+        <div class="bento-item item-tall" style="padding:0">
+          <img src="mp1ejsxn-mp1d4g5l-image.png" class="bento-image" alt="AC/Fan" style="object-fit: contain;">
+        </div>
+        <div class="bento-item item-hero">
+          <span class="eyebrow">Бабушкины методы</span>
+          <h2>Мёд, витамин С <br> и куриный суп</h2>
+        </div>
+        <div class="bento-item item-main">
+          <ul>
+            <li>Мёд реально помогает облегчать симптомы, но это не антибиотик.</li>
+            <li>Витамин С не предотвращает простуду и почти бесполезен в разгар болезни.</li>
+            <li>Тёплый суп помогает отходу слизи и самочувствию — это забота, а не магия.</li>
+          </ul>
+        </div>
+        <div class="bento-item item-side">
+           <p style="font-size: 0.9rem; font-style: italic; color: var(--accent);">«Лечимся симптоматически»</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 5: Spicy Food -->
+    <section class="slide" id="slide-5">
+      <div class="bento-grid">
+        <div class="bento-item item-hero" style="background: var(--danger); color: white;">
+          <span class="eyebrow" style="color: rgba(255,255,255,0.7);">Гастро-мифы</span>
+          <h2 style="font-size: 5rem;">Острое — <br> не причина язвы</h2>
+          <div class="myth-stamp" style="border-color: white; color: white; opacity: 1;">Миф</div>
+        </div>
+        <div class="bento-item item-main">
+          <ul>
+            <li>Язву вызывает бактерия Helicobacter pylori и лекарства (НПВП).</li>
+            <li>Перец не может «прожечь» здоровый желудок.</li>
+            <li>Острое лишь усиливает жжение при уже существующем дефекте.</li>
+          </ul>
+        </div>
+        <div class="bento-item item-tall" style="background: rgba(0,0,0,0.05); border: none; align-items: center; justify-content: center;">
+           <span style="font-size: 10rem; opacity: 0.1; font-family: var(--font-display);">!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 7: Summary -->
+    <section class="slide" id="slide-7">
+      <div class="bento-grid">
+        <div class="bento-item item-full" style="text-align: center;">
+          <span class="eyebrow">Подводим черту</span>
+          <h2 style="font-size: 5rem; margin-bottom: 4rem;">Цистит и главный вывод</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; text-align: left; max-width: 1000px; margin: 0 auto;">
+            <ul>
+              <li>Цистит вызывают бактерии, попавшие в мочевые пути, а не холодный камень.</li>
+              <li>Холод — лишь триггер, ослабляющий защиту.</li>
+            </ul>
+            <ul>
+              <li>Причины болезней — микробы и наши привычки.</li>
+              <li>При симптомах — идите к врачу, а не в Google.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const progressBar = document.getElementById('progress');
+    const currNum = document.getElementById('curr-num');
+    let currentIdx = 0;
+
+    function updatePresentation() {
+      slides.forEach((slide, idx) => {
+        slide.classList.toggle('active', idx === currentIdx);
+      });
+
+      // Update UI
+      const progress = ((currentIdx + 1) / slides.length) * 100;
+      progressBar.style.width = `${progress}%`;
+      currNum.textContent = currentIdx + 1;
+
+      // Update Theme Colors
+      const activeSlide = slides[currentIdx];
+      const accent = getComputedStyle(activeSlide).getPropertyValue('--accent');
+      document.body.style.backgroundColor = `color-mix(in oklch, ${accent}, white 95%)`;
+      document.querySelector('.blob').style.background = accent;
+
+      // Save position
+      localStorage.setItem('med-myth-bento-pos', currentIdx);
+    }
+
+    function nextSlide() {
+      if (currentIdx < slides.length - 1) {
+        currentIdx++;
+        updatePresentation();
+      }
+    }
+
+    function prevSlide() {
+      if (currentIdx > 0) {
+        currentIdx--;
+        updatePresentation();
+      }
+    }
+
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+
+    // Handle touch swipes
+    let xStart = null;
+    window.addEventListener('touchstart', (e) => { xStart = e.touches[0].clientX; });
+    window.addEventListener('touchend', (e) => {
+      if (!xStart) return;
+      const xEnd = e.changedTouches[0].clientX;
+      if (xStart - xEnd > 50) nextSlide();
+      if (xEnd - xStart > 50) prevSlide();
+      xStart = null;
+    });
+
+    // Initialize
+    const saved = localStorage.getItem('med-myth-bento-pos');
+    if (saved) {
+      currentIdx = parseInt(saved, 10);
+      if (isNaN(currentIdx) || currentIdx < 0 || currentIdx >= slides.length) currentIdx = 0;
+    }
+    updatePresentation();
+
+    // Subtle automatic 3D tilt
+    const deck = document.getElementById('deck');
+    let angle = 0;
+    function animate3D() {
+      angle += 0.01;
+      const x = Math.sin(angle) * 2;
+      const y = Math.cos(angle) * 1.5;
+      const grids = document.querySelectorAll('.bento-grid');
+      grids.forEach(grid => {
+        grid.style.transform = `rotateX(${5 + x}deg) rotateY(${-2 + y}deg)`;
+      });
+      requestAnimationFrame(animate3D);
+    }
+    animate3D();
+  </script>
+
+</body>
+</html>
